@@ -227,7 +227,7 @@ public class MainActivity extends AppCompatActivity {
                 MyDataEntry.TABLE_NAME,
                 query_columns,
                 null,
-                selectionArgs,
+                null,
                 null,
                 null,
                 sortOrder
