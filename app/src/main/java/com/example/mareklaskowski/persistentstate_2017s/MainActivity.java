@@ -1,13 +1,17 @@
 package com.example.mareklaskowski.persistentstate_2017s;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.provider.BaseColumns;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 
 public class MainActivity extends AppCompatActivity {
@@ -98,6 +102,21 @@ public class MainActivity extends AppCompatActivity {
 
         //load shared prefereces from the Shared Preferences file (if it exists!)
         loadSharedPreferences();
+
+        //handler for the Add button that will write records to the database
+        //TODO: also add these to the ListView or LinearLayout as you have chosen
+        Button saveGradeButton = (Button) findViewById(R.id.button);
+        saveGradeButton.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                //delegate the actual work to a method...
+                saveGrade();
+            }
+        });
+
+        //load data from the database
+        loadDatabase();
     }
 
     @Override
@@ -149,6 +168,86 @@ public class MainActivity extends AppCompatActivity {
             studentID_EditText.setText(""+studentId);
         }
         //TODO: get the grade as well!
+
+    }
+
+    /**
+     * this method demonstrates how to save data in the database
+     */
+    protected void saveGrade(){
+        /*
+        here we write the student id and grade to the database
+        ideally, any work with the database should be done in an AsyncTask
+        because these are potentially long running operations if the database is large
+        //TODO: put this in an AsyncTask
+         */
+        //step 0: get an instance of MyDbHelper - notice it requires a Context object
+        MyDbHelper helper = new MyDbHelper(this);
+        //get a writeable reference to the database using the helper
+        SQLiteDatabase db = helper.getWritableDatabase();
+        //step 1: create a new map of values representing the new row in the table
+        //where the column or field names are the table keys
+        ContentValues newRow = new ContentValues();
+        //step 2: add fields to the map
+        EditText studentID_EditText = (EditText) findViewById(R.id.editText_ID);
+        long studentId = Long.parseLong(studentID_EditText.getText().toString());
+        EditText studentGrade_EditText = (EditText) findViewById(R.id.editText_Grade);
+        String studentGrade = studentGrade_EditText.getText().toString();
+        newRow.put(MyDataEntry.STUDENT_ID_FIELD, studentId);
+        newRow.put(MyDataEntry.STUDENT_GRADE_FIELD, studentGrade);
+        Log.i("DEBUG", "writing a new row to the database: "+ studentId + " " + studentGrade);
+        //insert the row into the table
+        //the middle argument (null) is what to insert in case newRow is itself a null object
+        //returns the primary key value for the new row if it was successful
+        long newRowId = db.insert(MyDataEntry.TABLE_NAME, null, newRow);
+        Log.i("DEBUG", "result of database insertion: "+ newRowId);
+    }
+
+    /*
+    demonstrates how to access the database for reading
+     */
+    protected void loadDatabase(){
+        //get a reference to myDbHelper
+        MyDbHelper helper = new MyDbHelper(this);
+        //get a readable database instance
+        SQLiteDatabase db = helper.getReadableDatabase();
+        //define columns that we want to include in our query
+        String[] query_columns = {
+                MyDataEntry._ID,
+                MyDataEntry.STUDENT_ID_FIELD,
+                MyDataEntry.STUDENT_GRADE_FIELD
+        };
+        //construct a select query - and get a cursor object (see documentation and notes)
+        String selectQuery = MyDataEntry.STUDENT_ID_FIELD + " = ?";
+        //Strings to store arguments for the query
+        String[] selectionArgs = {" Filter string "};
+        String sortOrder = MyDataEntry.STUDENT_ID_FIELD + " DESC";
+        //get the actual cursor object
+        Cursor cursor = db.query(
+                MyDataEntry.TABLE_NAME,
+                query_columns,
+                null,
+                selectionArgs,
+                null,
+                null,
+                sortOrder
+        );
+        //use the API to navigate the record set
+        //move the cursor to the first row returned
+        boolean hasMoreData = cursor.moveToFirst();
+        while(hasMoreData){
+            //get the value out of each column or field
+            long key = cursor.getLong(cursor.getColumnIndexOrThrow(MyDataEntry._ID));
+            String studentID = cursor.getString(cursor.getColumnIndexOrThrow(MyDataEntry.STUDENT_ID_FIELD));
+            String studentGrade = cursor.getString(cursor.getColumnIndexOrThrow(MyDataEntry.STUDENT_GRADE_FIELD));
+            //for now print the row for debugging purposes
+            System.out.println("RECORD KEY: " + key + " student id: " + studentID + " student grade: " + studentGrade);
+            //TODO: for your lab you will populate an ArrayList that backs a ListView (or use a LinearLayout)
+
+            //don't forget to get the next row:
+            hasMoreData = cursor.moveToNext();
+
+        }
 
     }
 }
