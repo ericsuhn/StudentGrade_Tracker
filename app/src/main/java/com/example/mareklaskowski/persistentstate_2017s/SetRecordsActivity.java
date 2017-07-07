@@ -1,5 +1,6 @@
 package com.example.mareklaskowski.persistentstate_2017s;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Build;
 import android.support.v4.content.ContextCompat;
@@ -52,12 +53,15 @@ public class SetRecordsActivity extends AppCompatActivity {
 
     public void done_button_click_handler(){
 
-        Intent intent = new Intent(this, MainActivity.class);
+        Intent resultIntent = new Intent(this, MainActivity.class);
         EditText maxRecords_EditText = (EditText) findViewById(R.id.maxRecordsEditText);
 
         int maxRecords = Integer.parseInt(maxRecords_EditText.getText().toString());
-        intent.putExtra("records", maxRecords);
-        startActivity(intent);
+
+        resultIntent.putExtra("records", maxRecords);
+        //setResult(Activity.RESULT_OK, resultIntent);
+        //finish();
+        startActivity(resultIntent);
 
     }
 

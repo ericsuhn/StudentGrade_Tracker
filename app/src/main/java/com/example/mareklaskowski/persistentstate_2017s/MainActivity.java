@@ -1,5 +1,6 @@
 package com.example.mareklaskowski.persistentstate_2017s;
 
+import android.app.Activity;
 import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
@@ -27,6 +28,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListAdapter;
 import android.widget.ListView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 
@@ -34,18 +37,24 @@ public class MainActivity extends AppCompatActivity {
 
     //recall: to perform database operations we need several "helper classes"
     ArrayList<String> studentList = new ArrayList<String>();
-    //ArrayList<String> studentListPage = new ArrayList<String>();
+    ArrayList<String> studentListPage = new ArrayList<String>();
 
-    int maxRecords;
+    int maxRecords = 5;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Intent intent = getIntent();
-        maxRecords = intent.getIntExtra("records", 5);
 
+        Intent intent = getIntent();
+        maxRecords = intent.getIntExtra("records", 3);
+
+        //load shared prefereces from the Shared Preferences file (if it exists!)
+        loadSharedPreferences();
+
+
+        System.out.println(maxRecords + ".................");
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -57,12 +66,10 @@ public class MainActivity extends AppCompatActivity {
             window.setStatusBarColor(ContextCompat.getColor(this,R.color.colorPrimaryDark));
         }
 
-        //TODO: also add these to the ListView or LinearLayout as you have chosen
         ListView listView = (ListView) findViewById(R.id.myListView);
         ListAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, studentList);
 
-        //load shared prefereces from the Shared Preferences file (if it exists!)
-        loadSharedPreferences();
+
 
         //handler for the Add button that will write records to the database
         Button saveGradeButton = (Button) findViewById(R.id.button);
@@ -78,8 +85,35 @@ public class MainActivity extends AppCompatActivity {
         //load data from the database
         loadDatabase();
         listView.setAdapter(adapter);
-    }
 
+    }
+/*
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        //handler code
+        if(requestCode == 1){
+
+            if(resultCode == Activity.RESULT_OK){
+                maxRecords = data.getIntExtra("records", 5);
+                //message is received as text and as a toast
+                Toast.makeText(this,"Max Records shown: " + maxRecords, Toast.LENGTH_LONG).show();
+
+                //ListView listView = (ListView) findViewById(R.id.myListView);
+                //ListAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, studentList);
+                //listView.setAdapter(adapter);
+
+                loadDatabase();
+
+            }
+            else {
+                Log.e("SetRecordsActivity", "Something went wrong!");
+            }
+        }
+
+    }
+*/
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
 
@@ -108,16 +142,20 @@ public class MainActivity extends AppCompatActivity {
 
     public void setMaxRecords(){
         Intent intent = new Intent(this, SetRecordsActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, 1);
 
     }
 
     public void showNext(){
-
+        ListView listView = (ListView) findViewById(R.id.myListView);
+        ListAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, studentListPage);
+        listView.setAdapter(adapter);
     }
 
     public void showPrevious(){
-
+        ListView listView = (ListView) findViewById(R.id.myListView);
+        ListAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, studentListPage);
+        listView.setAdapter(adapter);
 
     }
 
@@ -226,13 +264,15 @@ public class MainActivity extends AppCompatActivity {
         //calling .edit() on our SharedPreferences instance will get us an Editor object
         SharedPreferences.Editor editor = sharedPreferences.edit();
 
+        //editor.putInt("max_recs", maxRecords);
+
         //step 2: get the values that we want to store...
         EditText studentID_EditText = (EditText) findViewById(R.id.editText_ID);
         long studentId = Long.parseLong(studentID_EditText.getText().toString());
         //step 3: use the editor to put our data into SharedPrefrences
         String studentIdKey = getString(R.string.student_id_key);
         editor.putLong(studentIdKey, studentId);
-        //TODO: you will also save the grade for next time!!
+
         EditText studentGrade_EditText = (EditText) findViewById(R.id.editText_Grade);
         float studentGrade = Float.parseFloat(studentGrade_EditText.getText().toString());
         //step 3: use the editor to put our data into SharedPrefrences
@@ -251,6 +291,9 @@ public class MainActivity extends AppCompatActivity {
         //step 0: open the shared preferences file (if exists) - otherwise it will be created when you call getSharedPreferences
         SharedPreferences sharedPreferences = getSharedPreferences(PREF_FILE_NAME, 0); //mode 0 means private
         //get data out of the shared preferences file
+
+        //maxRecords = sharedPreferences.getInt("max_recs", -1);
+
         long studentId = sharedPreferences.getLong("studentID", -1);
         if(studentId > 0){
             //if there was a valid studentID saved in the shared preferences file, insert it into the appropriate text box
@@ -263,6 +306,7 @@ public class MainActivity extends AppCompatActivity {
             EditText studentGrade_EditText = (EditText) findViewById(R.id.editText_Grade);
             studentGrade_EditText.setText(""+studentGrade);
         }
+
 
     }
 
@@ -338,10 +382,10 @@ public class MainActivity extends AppCompatActivity {
             String studentGrade = cursor.getString(cursor.getColumnIndexOrThrow(MyDataEntry.STUDENT_GRADE_FIELD));
             //for now print the row for debugging purposes
             System.out.println("RECORD KEY: " + key + " student id: " + studentID + " student grade: " + studentGrade);
-            //TODO: for your lab you will populate an ArrayList that backs a ListView (or use a LinearLayout)
 
             String s = "Student ID: " + studentID + ", Grade: " + studentGrade;
             //studentList.add(s);
+
             if(count < maxRecords) {
                 studentList.add(s);
                 count++;
