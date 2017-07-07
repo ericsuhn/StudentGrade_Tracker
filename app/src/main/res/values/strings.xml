@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">PersistentState_2017S</string>
+    <string name="app_name">My Student Grades</string>
+    <string name="student_id_key">studentID</string>
+    <string name="student_grade_key">studentGrade</string>
+
+
 </resources>

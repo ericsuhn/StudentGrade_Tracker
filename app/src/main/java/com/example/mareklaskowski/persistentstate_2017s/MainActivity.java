@@ -1,22 +1,127 @@
 package com.example.mareklaskowski.persistentstate_2017s;
 
+import android.app.Dialog;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.graphics.Color;
+import android.os.Build;
 import android.provider.BaseColumns;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+
+import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
 
     //recall: to perform database operations we need several "helper classes"
+    ArrayList<String> studentList = new ArrayList<String>();
+    //ArrayList<String> studentListPage = new ArrayList<String>();
+
+    int maxRecords;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        Intent intent = getIntent();
+        maxRecords = intent.getIntExtra("records", 5);
+
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setStatusBarColor(ContextCompat.getColor(this,R.color.colorPrimaryDark));
+        }
+
+        //TODO: also add these to the ListView or LinearLayout as you have chosen
+        ListView listView = (ListView) findViewById(R.id.myListView);
+        ListAdapter adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, studentList);
+
+        //load shared prefereces from the Shared Preferences file (if it exists!)
+        loadSharedPreferences();
+
+        //handler for the Add button that will write records to the database
+        Button saveGradeButton = (Button) findViewById(R.id.button);
+        saveGradeButton.setOnClickListener(new View.OnClickListener(){
+
+            @Override
+            public void onClick(View v) {
+                //delegate the actual work to a method...
+                saveGrade();
+            }
+        });
+
+        //load data from the database
+        loadDatabase();
+        listView.setAdapter(adapter);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.menu_set_max_records:
+                setMaxRecords();
+                return true;
+            case R.id.menu_previous:
+                showPrevious();
+                return true;
+            case R.id.menu_next:
+                showNext();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    public void setMaxRecords(){
+        Intent intent = new Intent(this, SetRecordsActivity.class);
+        startActivity(intent);
+
+    }
+
+    public void showNext(){
+
+    }
+
+    public void showPrevious(){
+
+
+    }
+
+
 
     /*
     HELPER CLASS #1 - for defining SQL table layouts in Java
@@ -95,29 +200,7 @@ public class MainActivity extends AppCompatActivity {
     //declare a constant for our SharedPreferences file name
     public static final String PREF_FILE_NAME = "mySPfile";
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        //load shared prefereces from the Shared Preferences file (if it exists!)
-        loadSharedPreferences();
-
-        //handler for the Add button that will write records to the database
-        //TODO: also add these to the ListView or LinearLayout as you have chosen
-        Button saveGradeButton = (Button) findViewById(R.id.button);
-        saveGradeButton.setOnClickListener(new View.OnClickListener(){
-
-            @Override
-            public void onClick(View v) {
-                //delegate the actual work to a method...
-                saveGrade();
-            }
-        });
-
-        //load data from the database
-        loadDatabase();
-    }
 
     @Override
     protected void onStop() {
@@ -147,8 +230,15 @@ public class MainActivity extends AppCompatActivity {
         EditText studentID_EditText = (EditText) findViewById(R.id.editText_ID);
         long studentId = Long.parseLong(studentID_EditText.getText().toString());
         //step 3: use the editor to put our data into SharedPrefrences
-        editor.putLong("studentID", studentId); //TODO: use a static constant for the key instead!
+        String studentIdKey = getString(R.string.student_id_key);
+        editor.putLong(studentIdKey, studentId);
         //TODO: you will also save the grade for next time!!
+        EditText studentGrade_EditText = (EditText) findViewById(R.id.editText_Grade);
+        float studentGrade = Float.parseFloat(studentGrade_EditText.getText().toString());
+        //step 3: use the editor to put our data into SharedPrefrences
+        String studentGradeKey = getString(R.string.student_grade_key);
+        editor.putFloat(studentGradeKey, studentGrade);
+
         //step 4: call commit to save the changes!
         editor.commit();//alternatively you may use apply
     }
@@ -167,7 +257,12 @@ public class MainActivity extends AppCompatActivity {
             EditText studentID_EditText = (EditText) findViewById(R.id.editText_ID);
             studentID_EditText.setText(""+studentId);
         }
-        //TODO: get the grade as well!
+
+        float studentGrade = sharedPreferences.getFloat("studentGrade", -1);
+        if(studentGrade > 0){
+            EditText studentGrade_EditText = (EditText) findViewById(R.id.editText_Grade);
+            studentGrade_EditText.setText(""+studentGrade);
+        }
 
     }
 
@@ -234,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
         );
         //use the API to navigate the record set
         //move the cursor to the first row returned
+        int count = 0;
         boolean hasMoreData = cursor.moveToFirst();
         while(hasMoreData){
             //get the value out of each column or field
@@ -244,6 +340,12 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("RECORD KEY: " + key + " student id: " + studentID + " student grade: " + studentGrade);
             //TODO: for your lab you will populate an ArrayList that backs a ListView (or use a LinearLayout)
 
+            String s = "Student ID: " + studentID + ", Grade: " + studentGrade;
+            //studentList.add(s);
+            if(count < maxRecords) {
+                studentList.add(s);
+                count++;
+            }
             //don't forget to get the next row:
             hasMoreData = cursor.moveToNext();
 

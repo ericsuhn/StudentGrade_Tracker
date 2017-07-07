@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_set_max_records"
+        android:title="Set Max Records Shown"
+        app:showAsAction="never"
+
+        />
+
+    <item
+        android:id="@+id/menu_previous"
+        android:title="Previous Page"
+        app:showAsAction="never"
+
+        />
+
+    <item
+        android:id="@+id/menu_next"
+        android:title="Next Page"
+        app:showAsAction="never"
+
+        />
+
+
+</menu>
